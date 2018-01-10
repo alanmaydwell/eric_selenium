@@ -6,11 +6,11 @@ Measures time taken my some actions.
 """
 
 import time
-import timeit
 import getpass
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 
 def fn_timer(fn, *args, **kwargs):
     """Measures execution time of function
@@ -134,6 +134,51 @@ class Eric(object):
         #Wait for "please wait" message to go
         WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
 
+    def search(self, search_string):
+        """Perform search
+        Args:
+            search_string - text typed into search field
+        """
+        driver = self.driver
+        # Search field and search button lack convenient identifiers
+        # Finding by looking for not-hidden input fields in containing div
+        div = driver.find_element_by_class_name("tableBoxInd")
+        fields = [e for e in div.find_elements_by_tag_name("input")
+                  if e.get_attribute("type") != "hidden"]
+        # Enter the search text
+        fields[0].clear()
+        fields[0].send_keys(search_string)
+        # Click search button
+        fields[1].click()
+        # Wait for "please wait" to go
+        WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+
+    def report_list(self):
+        """Finds which reports are listed
+        Should either be 0 or the 4 standard reports
+
+        "Civil financial statement",
+        "Criminal financial statement"
+        "Family mediation financial statement"
+        "Financial statement summary"
+
+        """
+        driver = self.driver
+        # If report search successful, there's a div on the page
+        # containing the results, otherwise it's abscent
+
+        try:
+            div = driver.find_element_by_class_name("tableBoxIndHalf2")
+        except NoSuchElementException as e:
+            pass
+        else:
+            reports = [e.text for e in div.find_elements_by_tag_name("a")]
+            message = div.find_element_by_tag_name("p").text
+            print reports
+            print message
+            print ""
+
+
     def select_report(self, report_no=0):
         """
         Select Report on Eric Main Screen by position (from 0 to 3)
@@ -182,9 +227,9 @@ class Eric(object):
         driver = self.driver
         # Buttons lack convenient labels. Finding by tag name
         button_div = driver.find_element_by_id("buttons2")
-        buttons = {e.get_attribute("alt"): e for e in button_div.find_elements_by_tag_name("a")}
+        buttons = button_div.find_elements_by_tag_name("a")
         # Click the "Close Report" button
-        buttons["Close this report"].click()
+        buttons[-1].click()
         # Return Window focus
         driver.switch_to_window(driver.window_handles[-1])
 
@@ -199,14 +244,19 @@ if __name__ == "__main__":
     print "Started"
     url = "https://syssso10.laadev.co.uk/"
     username = "pear-s"
-    password = getpass.getpass()
+    password = getpass.getpass(prompt="Password:")
     go = Eric()
     result = go.login(username, password, url)
     print result
     go.open_eric()
+    for things in ["0G934M", "Mangle", "2N875V"]:
+        go.search(things)
+        go.report_list()
+    """
     for report_no in [0, 1, 2, 3]:
         print fn_timer(go.select_report, report_no)
 
     go.view_report()
     go.close_report()
+    """
     print "Finished"
