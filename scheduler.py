@@ -95,9 +95,10 @@ log_print("Creating Scheduled Events")
 #Script to run - this one in same folder as present script
 script = "spreadsheet_run.py"
 #Times of day to run. List of (hour,minute) tuples
-run_times = [(13,56),(12,15),(12,16)]
+run_times = [(12,26),(12,30)]#[(13,56),(12,15),(12,16)]
+#run_times = [(h,m) for h in (8, 9, 10, 11, 12, 13, 14, 15, 16) for m in (0,5,10,15,20,25,30,35,40,45,50,55)]
 #Days on which to run from the present day, i.e. 0 for today, 1 for tommorrow, 2 for the day after that, e.g. [0,2,4].
-run_days = [0,2,4]
+run_days = [0]#[0,2,4]
 #Create events
 create_events(script, run_times, run_days)
 
