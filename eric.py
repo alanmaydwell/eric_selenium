@@ -10,7 +10,8 @@ import getpass
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import NoSuchElementException
+##from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 
 def fn_timer(fn, *args, **kwargs):
     """Measures execution time of function
@@ -46,6 +47,7 @@ def fn_timer_decorator(fn):
     return temp
 
 class Eric(object):
+    """Uses Webdriver to interact with Eric"""
 
     def __init__(self):
         #Text of link used to open application from Portal
@@ -102,6 +104,7 @@ class Eric(object):
             WebDriverWait(self.driver, 20).until(lambda driver:
                                                  ">Logged in as:" in driver.page_source
                                                  or "An incorrect Username or Password was specified" in driver.page_source
+                                                 or "Authentication failed. Please try again" in driver.page_source
                                                  or "t be displayed" in driver.page_source  # Avoiding weird apostrophe! from "can't"
                                                  or "Secure Connection Failed" in driver.page_source)
         except TimeoutException:
@@ -122,7 +125,7 @@ class Eric(object):
         # Click the Hyperlink
         driver.find_element_by_link_text(self.application_link).click()
         # Wait for the Eric Window to open, then switch to it.
-        WebDriverWait(driver,20).until(lambda x: len(x.window_handles)==2,self.driver)
+        WebDriverWait(driver, 20).until(lambda x: len(x.window_handles)==2,self.driver)
         newwindow = driver.window_handles[-1]
         driver.switch_to_window(newwindow)
         # Check expected page is present
@@ -271,6 +274,10 @@ class Eric(object):
     def log_out(self):
         """Click 'Log out' link in Eric"""
         self.driver.find_elements_by_link_text("Log out").click()
+
+    def close(self):
+        """Shutdown webdriver"""
+        self.driver.quit()
 
 
 # Management Information (MI)
