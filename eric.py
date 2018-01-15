@@ -55,12 +55,8 @@ class Eric(object):
         """
         Check to see if page update is blocked by "Please Wait" message
         Return True if blocked, False if not blocked
-
-        Relies on whether blockingDiv element is
-        on display.
         """
-        driver = self.driver
-        blocker = driver.find_element_by_id("blockingDiv")
+        blocker = self.driver.find_element_by_id("blockingDiv")
         return blocker.is_displayed()
 
     def login(self, username, password, url):
@@ -171,8 +167,8 @@ class Eric(object):
         # No convenient locators for these items. Also response message
         # in different location if search unsuccessful
         # If report search successful, there's a div on the page
-
         # If search was successful there's a "tableBoxIndHalf2" div
+
         results_div = driver.find_elements_by_class_name("tableBoxIndHalf2")
         # Search result has reports
         if results_div:
@@ -190,7 +186,7 @@ class Eric(object):
     def select_report(self, report_no=0):
         """
         Select Report on Eric Main Screen by position (from 0 to 3)
-        (only selects, does not open)
+        b only selects, does not open.
         Args:
             report_no - report position (0 to 3)
         """
@@ -203,6 +199,18 @@ class Eric(object):
         driver.find_element_by_link_text(report).click()
         # Wait for "please wait" to go
         WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+
+    def read_report_choice(self):
+        """Returns the name of the report currently selected"""
+        driver = self.driver
+        # No convenient identifier.
+        # Also not always present
+        # Also report text is in the 2nd h3 tag
+        h3_texts = [e.text for e in driver.find_elements_by_tag_name("h3")]
+        report_name = ""
+        if len(h3_texts) == 2:
+            report_name = h3_texts[-1]
+        return report_name
 
     def view_report(self):
         """
@@ -220,8 +228,7 @@ class Eric(object):
                           if e.get_attribute("value")=="View Report"]
         button = input_elements[0]
         button.click()
-
-        # Report is in a new window
+        # Report is in a new window - switch to it
         driver.switch_to_window(driver.window_handles[-1])
         # Wait for "Please Wait to go"
         WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
@@ -238,7 +245,7 @@ class Eric(object):
         tables = driver.find_elements_by_tag_name("table")
 
         #Details from 1st table
-        print "Report Heading Fnfo"
+        print "Report Heading Info"
         summary_rows = tables[0].find_elements_by_tag_name("tr")
         for row in summary_rows:
             cells = row.find_elements_by_tag_name("td")
@@ -256,11 +263,10 @@ class Eric(object):
         # Buttons lack convenient labels. Finding by tag name
         button_div = driver.find_element_by_id("buttons2")
         buttons = button_div.find_elements_by_tag_name("a")
-        # Click the "Close Report" button
+        # Click the "Close Report" button (assuming its the last one)
         buttons[-1].click()
         # Return Window focus
         driver.switch_to_window(driver.window_handles[-1])
-
 
     def log_out(self):
         """Click 'Log out' link in Eric"""
@@ -296,8 +302,8 @@ if __name__ == "__main__":
     for report_no in [0, 1, 2, 3]:
         print "\nTimings for report:", report_no
         # Select the report
-
         print "Select:", fn_timer(test.select_report, report_no)
+        print "Found:", test.read_report_choice()
         # View the selected report
         print "View:", fn_timer(test.view_report)
         #Examine report details - not complete
