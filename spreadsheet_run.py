@@ -7,7 +7,7 @@ formatted spreadsheet. Also records results to this spreadsheet.
 Relies on eric.py to interact with Eric.
 """
 
-#More secure password input
+# More secure password input
 import getpass
 import time
 
@@ -15,7 +15,7 @@ import time
 import sys
 import os
 
-#Used to read spreadsheet
+# Used to read spreadsheet
 import openpyxl
 
 # Generic function timer
@@ -28,28 +28,33 @@ class ExcelRun(object):
     def __init__(self, filename=""):
         """
         Uses Selenium to search, select and view Reports in Eric based on
-        data from specially formatted spredsheet.
+        data from specially formatted spreadsheet.
         Args:
             filename - Excel file with test data
         """
-        # Selenium runer in Eric
+        # Selenium runner in Eric
         self.eric = Eric()
         # Excel filename
         self.filename = filename
         # Row where columns headings are located
         self.heading_row = 5
 
-    def run(self):
-        """Run using data from spreadsheet"""
-        #Try to open spreadsheet
+    def run(self, max_scenario_row=40):
+        """Run using data from spreadsheet
+
+        Args:
+            max_scenario_row - maximum row number for scenario. Execution will
+                stop after maximum row reached.
+        """
+        # Try to open spreadsheet
         self.open_spreadsheet()
 
-        #Check that required tabs are present and give up if any missing
+        # Check that required tabs are present and give up if any missing
         essential_tabs = ["Scenario", "Results"]
         missing_tabs = [tab for tab in essential_tabs if tab not in self.wb.sheetnames]
         if missing_tabs:
             print "Excel file:", self.filename
-            print "Ending - required tab(s) missing: "+ ", ".join(missing_tabs)
+            print "Ending - required tab(s) missing: " + ", ".join(missing_tabs)
             return "Missing tabs: "+", ".join(missing_tabs)
 
         # The scenario sheet
@@ -64,22 +69,22 @@ class ExcelRun(object):
         if results_start_row <= self.heading_row:
             results_start_row = self.heading_row + 1
 
-        # Seet starting results column
+        # Sheet starting results column
         results_start_column = 2
 
         # Iterate through the scenario rows
-        scenario_row  = self.heading_row +1
+        scenario_row = self.heading_row + 1
         results_row = results_start_row
         results_column = results_start_column
         continue_run = True
         while continue_run:
-            # Read scenario step from sreadsheet
+            # Read scenario step from spreadsheet
             action = ss.cell(row=scenario_row, column=1).value
             # make action lower-case str
             action = str(action).lower()
             # Associated parameters
             parameter = ss.cell(row=scenario_row, column=2).value
-            #Parameter 2 and 3 currently only used for username/password
+            # Parameter 2 and 3 currently only used for username/password
             parameter2 = ss.cell(row=scenario_row, column=3).value
             parameter3 = ss.cell(row=scenario_row, column=4).value
 
@@ -88,9 +93,9 @@ class ExcelRun(object):
 
             # Take action based on step details
 
-            #Login to Eric
+            # Login to Eric
             if action == "login":
-                #Get username and password if not in spreadsheet
+                # Get username and password if not in spreadsheet
                 if not parameter2:
                     parameter2 = raw_input("Username:")
                 if not parameter3:
@@ -101,7 +106,7 @@ class ExcelRun(object):
                 launch_time = self.check_login(parameter2, parameter3, parameter)
                 rs.cell(row=results_row, column=results_column).value = launch_time
                 results_column += 1
-                #Give up if login was unsuccsessful
+                # Give up if login was unsuccessful
                 if str(launch_time) == "Login Failed":
                     continue_run = False
 
@@ -123,7 +128,7 @@ class ExcelRun(object):
                 # Get selection time if reports are present
                 if report_names:
                     select_time = self.check_report_select(parameter)
-                    rs.cell(row=results_row, column=results_column).value = search_time
+                    rs.cell(row=results_row, column=results_column).value = select_time
                 # Write message if reports absent
                 else:
                     rs.cell(row=results_row, column=results_column).value = "No Reports Present"
@@ -146,7 +151,7 @@ class ExcelRun(object):
             scenario_row += 1
 
             # Quit if we're at end
-            if scenario_row > 30 or not action:
+            if scenario_row > max_scenario_row or not action:
                 continue_run = False
 
         # Final actions
@@ -193,7 +198,7 @@ class ExcelRun(object):
     def check_report_view(self):
         """Response time for report to appear after clicking view button"""
         view_time = fn_timer(self.eric.view_report)
-        #Close the report after viewing (not timed currently)
+        # Close the report after viewing (not timed currently)
         self.eric.close_report()
         return view_time
 
@@ -201,12 +206,12 @@ class ExcelRun(object):
         """Open test data spreadsheet"""
         try:
             self.wb = openpyxl.load_workbook(filename=self.filename)
-        #Give up if fails
+        # Give up if fails
         except Exception as e:
             response = self.filename+" - Failed to read: " + e.__doc__
             print response
             print os.getcwd()
-            #Give up if unsuccessful
+            # Give up if unsuccessful
             return response
 
 

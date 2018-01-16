@@ -3,6 +3,9 @@
 """
 Selenium script that logs-in to Eric
 Measures time taken my some actions.
+
+Mainly intended to be a module used by other scripts.
+However, can be run directly
 """
 
 import time
@@ -10,8 +13,8 @@ import getpass
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-##from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
+
 
 def fn_timer(fn, *args, **kwargs):
     """Measures execution time of function
@@ -26,6 +29,7 @@ def fn_timer(fn, *args, **kwargs):
     fn(*args, **kwargs)
     t_end = time.time()
     return t_end - t_start
+
 
 def fn_timer_decorator(fn):
     """
@@ -46,11 +50,11 @@ def fn_timer_decorator(fn):
         return t_end - t_start
     return temp
 
+
 class Eric(object):
     """Uses Webdriver to interact with Eric"""
-
     def __init__(self):
-        #Text of link used to open application from Portal
+        # Text of link used to open application from Portal
         self.application_link = "Management Information (MI)"
 
     def check_page_blocked(self):
@@ -82,9 +86,9 @@ class Eric(object):
         self.driver.get(url)
         # Wait for page
         WebDriverWait(driver, 10).until(lambda driver:
-                                       driver.title == "LAA Online Portal"
-                                       or "By logging in to this Portal"
-                                       in driver.page_source)
+                                        driver.title == "LAA Online Portal"
+                                        or "By logging in to this Portal"
+                                        in driver.page_source)
 
         # Login to Portal - New or Old
         # New Portal
@@ -105,7 +109,7 @@ class Eric(object):
                                                  ">Logged in as:" in driver.page_source
                                                  or "An incorrect Username or Password was specified" in driver.page_source
                                                  or "Authentication failed. Please try again" in driver.page_source
-                                                 or "t be displayed" in driver.page_source  # Avoiding weird apostrophe! from "can't"
+                                                 or "t be displayed" in driver.page_source # Avoiding weird apostrophe! from "can't"
                                                  or "Secure Connection Failed" in driver.page_source)
         except TimeoutException:
             pass
@@ -125,13 +129,13 @@ class Eric(object):
         # Click the Hyperlink
         driver.find_element_by_link_text(self.application_link).click()
         # Wait for the Eric Window to open, then switch to it.
-        WebDriverWait(driver, 20).until(lambda x: len(x.window_handles)==2,self.driver)
+        WebDriverWait(driver, 20).until(lambda x: len(x.window_handles) == 2, self.driver)
         newwindow = driver.window_handles[-1]
         driver.switch_to_window(newwindow)
         # Check expected page is present
-        WebDriverWait(driver,20).until(lambda driver:"<p>4 reports found for" in driver.page_source)
-        #Wait for "please wait" message to go
-        WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+        WebDriverWait(driver, 20).until(lambda driver: "<p>4 reports found for" in driver.page_source)
+        # Wait for "please wait" message to go
+        WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
     def search(self, search_string):
         """Perform search
@@ -150,7 +154,7 @@ class Eric(object):
         # Click search button
         fields[1].click()
         # Wait for "please wait" to go
-        WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+        WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
     def report_list_items(self):
         """Finds which reports are listed
@@ -162,7 +166,8 @@ class Eric(object):
         "Financial statement summary"
 
         Returns search result message, list of report names,
-        eg. "4 reports found for 2N875V", [u'Civil financial statement', u'Criminal financial statement', u'Family mediation financial statement', u'Financial statement summary']
+        eg. "4 reports found for 2N875V", [u'Civil financial statement', u'Criminal financial statement',
+        u'Family mediation financial statement', u'Financial statement summary']
 
         """
         driver = self.driver
@@ -185,7 +190,6 @@ class Eric(object):
 
         return message, report_names
 
-
     def select_report(self, report_no=0):
         """
         Select Report on Eric Main Screen by position (from 0 to 3)
@@ -201,7 +205,7 @@ class Eric(object):
         report = reports[report_no]
         driver.find_element_by_link_text(report).click()
         # Wait for "please wait" to go
-        WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+        WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
     def read_report_choice(self):
         """Returns the name of the report currently selected"""
@@ -228,13 +232,13 @@ class Eric(object):
         form = driver.find_element_by_id("ReportDetailsForm")
         # Contains multiple "input" fields, filter to get right one
         input_elements = [e for e in form.find_elements_by_tag_name("input")
-                          if e.get_attribute("value")=="View Report"]
+                          if e.get_attribute("value") == "View Report"]
         button = input_elements[0]
         button.click()
         # Report is in a new window - switch to it
         driver.switch_to_window(driver.window_handles[-1])
         # Wait for "Please Wait to go"
-        WebDriverWait(driver,20).until(lambda driver: not self.check_page_blocked())
+        WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
     def examine_report_details(self):
         """Examine details from already open report
@@ -247,14 +251,14 @@ class Eric(object):
         # Results are in four tables within (Summary, Detail, Additional, Payments)
         tables = driver.find_elements_by_tag_name("table")
 
-        #Details from 1st table
+        # Details from 1st table
         print "Report Heading Info"
         summary_rows = tables[0].find_elements_by_tag_name("tr")
         for row in summary_rows:
             cells = row.find_elements_by_tag_name("td")
             print " ".join([e.text for e in cells])
 
-        #Leave the iframe
+        # Leave the iframe
         driver.switch_to_default_content()
 
     def close_report(self):
@@ -313,7 +317,7 @@ if __name__ == "__main__":
         print "Found:", test.read_report_choice()
         # View the selected report
         print "View:", fn_timer(test.view_report)
-        #Examine report details - not complete
+        # Examine report details - not complete
         ##test.examine_report_details()
         # Close the report (not timed)
         test.close_report()
