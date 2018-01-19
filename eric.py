@@ -133,7 +133,9 @@ class Eric(object):
         newwindow = driver.window_handles[-1]
         driver.switch_to_window(newwindow)
         # Check expected page is present
-        WebDriverWait(driver, 20).until(lambda driver: "<p>4 reports found for" in driver.page_source)
+        WebDriverWait(driver, 20).until(lambda driver:
+                                        "<p>4 reports found for" in driver.page_source
+                                        or "0 report(s) found for user" in driver.page_source)
         # Wait for "please wait" message to go
         WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
@@ -193,7 +195,7 @@ class Eric(object):
     def select_report(self, report_no=0):
         """
         Select Report on Eric Main Screen by position (from 0 to 3)
-        b only selects, does not open.
+        only selects, does not open.
         Args:
             report_no - report position (0 to 3)
         """
@@ -277,7 +279,7 @@ class Eric(object):
 
     def log_out(self):
         """Click 'Log out' link in Eric"""
-        self.driver.find_elements_by_link_text("Log out").click()
+        self.driver.find_element_by_link_text("Log out").click()
 
     def close(self):
         """Shutdown webdriver"""

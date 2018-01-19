@@ -39,7 +39,7 @@ This is intended to be the main way of running the script.
 
 - Can run any Python file and mutliple schedules can be setup.
 
-- Relies on data recorded within spreadsheet_run.py between the test data start/end comments (lines 94 to 111).
+- Relies on data recorded within scheduler.py between the test data start/end comments (lines 94 to 111).
 
 *Example setup*
 ``` python

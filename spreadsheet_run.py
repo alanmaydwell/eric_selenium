@@ -39,7 +39,7 @@ class ExcelRun(object):
         # Row where columns headings are located
         self.heading_row = 5
 
-    def run(self, max_scenario_row=40):
+    def run(self, max_scenario_row=60):
         """Run using data from spreadsheet
 
         Args:
@@ -101,7 +101,7 @@ class ExcelRun(object):
                 if not parameter3:
                     parameter3 = getpass.getpass(prompt="Password:")
 
-                rs.cell(row=results_row, column=results_column).value = parameter
+                rs.cell(row=results_row, column=results_column).value = parameter + " " + parameter2
                 results_column += 1
                 launch_time = self.check_login(parameter2, parameter3, parameter)
                 rs.cell(row=results_row, column=results_column).value = launch_time
@@ -136,18 +136,32 @@ class ExcelRun(object):
 
             # View report (previously selected)
             elif action == "view":
+                # See which report is currently selected
                 report_name = self.eric.read_report_choice()
+                # Write report name to spreadsheet
                 rs.cell(row=results_row, column=results_column).value = report_name
                 results_column += 1
-                view_time = self.check_report_view()
+                # If we've a report measure the time it takes to open it
+                if report_name:
+                    view_time = self.check_report_view()
+                else:
+                    view_time = "n/a - no report selected"
                 rs.cell(row=results_row, column=results_column).value = view_time
                 results_column += 1
+
+            # Logout from Eric and end Webdriver session
+            elif action == "logout":
+                # Logout from Eric
+                self.eric.log_out()
+                # Close Webdriver Session
+                self.eric.close()
+
             # Start new results line
             elif action == "newline":
                 results_row += 1
                 results_column = results_start_column
 
-            # Advance to next row
+            # Advance to next row for next run
             scenario_row += 1
 
             # Quit if we're at end
