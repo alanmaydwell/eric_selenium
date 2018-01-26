@@ -1,4 +1,4 @@
-#!/usr/bin/env/ python
+#!/usr/bin/env python
 
 """
 Measures transaction times in Eric using some data from a specially

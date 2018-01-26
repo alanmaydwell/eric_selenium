@@ -134,7 +134,7 @@ class Eric(object):
         driver.switch_to_window(newwindow)
         # Check expected page is present
         WebDriverWait(driver, 20).until(lambda driver:
-                                        "<p>4 reports found for" in driver.page_source
+                                        "reports found for" in driver.page_source
                                         or "0 report(s) found for user" in driver.page_source)
         # Wait for "please wait" message to go
         WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
@@ -160,7 +160,7 @@ class Eric(object):
 
     def report_list_items(self):
         """Finds which reports are listed
-        Should either be 0 or the 4 standard reports
+        Should either be 0 or the 4/6 standard reports
 
         "Civil financial statement",
         "Criminal financial statement"
@@ -192,20 +192,32 @@ class Eric(object):
 
         return message, report_names
 
-    def select_report(self, report_no=0):
+    def select_report(self, report=0):
         """
-        Select Report on Eric Main Screen by position (from 0 to 3)
-        only selects, does not open.
+        Select Report on Eric Main Screen by position (from 0)
+        or by name.
+        Only selects, does not open.
         Args:
-            report_no - report position (0 to 3)
+            report - either (int) report position (0 to 5)
+                     or (str) the full report name
         """
-        reports = ["Civil financial statement",
-                   "Criminal financial statement",
-                   "Family mediation financial statement",
-                   "Financial statement summary"]
+        #reports = ["Civil financial statement",
+        #           "Criminal financial statement",
+        #           "Family mediation financial statement",
+        #           "Financial statement summary"]
+        
+        # Find the report name present on screen
+
         driver = self.driver
-        report = reports[report_no]
-        driver.find_element_by_link_text(report).click()
+        # If position provided, find the associated report name
+        if type(report) is int:
+            _, reports = self.report_list_items()       
+            report_text = reports[report]
+        # Otherwise just use the supplied value
+        else:
+            report_text = report
+        
+        driver.find_element_by_link_text(report_text).click()
         # Wait for "please wait" to go
         WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
