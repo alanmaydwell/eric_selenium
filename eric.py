@@ -290,12 +290,23 @@ class Eric(object):
         driver.switch_to_window(driver.window_handles[-1])
 
     def log_out(self):
-        """Click 'Log out' link in Eric"""
-        self.driver.find_element_by_link_text("Log out").click()
-
+        """Log out from Eric and the Portal"""
+        driver = self.driver
+        # Click Eric logout link
+        driver.find_element_by_link_text("Log out").click()
+        # Wait for the Eric window to close
+        WebDriverWait(driver, 20).until(lambda x: len(x.window_handles) == 1, self.driver)
+        # Ensure focus is on the portal window
+        driver.switch_to_window(driver.window_handles[0])
+        # Click the portqal log out link
+        driver.find_element_by_link_text("Log Out").click()
+        # Wait for confirmation message
+        WebDriverWait(driver, 20).until(lambda driver: '<h1 class="heading-xlarge">Logged Out</h1>' in driver.page_source)
+        
     def close(self):
         """Shutdown webdriver"""
         self.driver.quit()
+
 
 
 # Management Information (MI)
@@ -318,7 +329,7 @@ if __name__ == "__main__":
     # Perform Search in CCR
     search_time = fn_timer(test.search, "0G934M")
     print "Search time:", search_time
-
+    
     # Show which reports were found (not timed)
     message, report_list = test.report_list_items()
     print message
