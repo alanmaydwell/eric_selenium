@@ -20,6 +20,22 @@ v0.2 -
     (iii) Optional log file kept. Uses log_print() function
 """
 
+def from_now(interval=5, count=2):
+    """run_times maker
+    Caution near midnight!
+    Args:
+        interval - interval in minutes
+        count - number of events to schedule
+    """
+    run_times = []
+    start = datetime.datetime.now()
+    dt = datetime.timedelta(minutes=interval)
+    for i in range(count):
+        point = start+(dt*i)
+        run_times.append((point.hour,point.minute))
+
+    return run_times
+
 
 def run_script(script):
     """Runs chosen python script (in own separate interpreter instance).
@@ -99,8 +115,12 @@ log_print("Creating Scheduled Events")
 # Script to run - this one in same folder as present script
 script = "spreadsheet_run.py"
 # Times of day to run. List of (hour,minute) tuples
-run_times = [(15,13),(15,18)]  #[(13,56),(12,15),(12,16)]
+#run_times = [(11,30),(11,35), (11,40)]  #[(13,56),(12,15),(12,16)]
 # run_times = [(h,m) for h in (8, 9, 10, 11, 12, 13, 14, 15, 16) for m in (0,5,10,15,20,25,30,35,40,45,50,55)]
+
+
+run_times = from_now(interval=5, count=3)
+
 # Days on which to run from the present day, i.e. 0 for today, 1 for tomorrow, 2 for the day after that, e.g. [0,2,4].
 run_days = [0] #[0,2,4]
 # Create events
