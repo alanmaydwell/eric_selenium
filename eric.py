@@ -56,6 +56,8 @@ class Eric(object):
     def __init__(self):
         # Text of link used to open application from Portal
         self.application_link = "Management Information (MI)"
+        # When True, Browser window is placed at x-coordinate -3000 to hide it.
+        self.offscreen = False
 
     def check_page_blocked(self):
         """
@@ -82,6 +84,10 @@ class Eric(object):
         # Create Webdriver instance
         self.driver = webdriver.Firefox()
         driver = self.driver
+        #Move window off edge of screen (effecivtely hides it) if flag set
+        if self.offscreen:
+            driver.set_window_position(3000, 0) # driver.set_window_position(0, 0) to get it bac
+        
         # Open URL
         self.driver.get(url)
         # Wait for page
