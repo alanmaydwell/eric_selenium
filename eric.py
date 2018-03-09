@@ -15,6 +15,8 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 
+# Needed to set particular Firefox profile in Selenium (e.g. for Modify Headers)
+from selenium.webdriver.firefox.webdriver import FirefoxProfile
 
 def fn_timer(fn, *args, **kwargs):
     """Measures execution time of function
@@ -87,7 +89,7 @@ class Eric(object):
         #Move window off edge of screen (effecivtely hides it) if flag set
         if self.offscreen:
             driver.set_window_position(3000, 0) # driver.set_window_position(0, 0) to get it bac
-        
+
         # Open URL
         self.driver.get(url)
         # Wait for page
@@ -128,6 +130,31 @@ class Eric(object):
                 result = 0
 
         return result
+
+    def login_direct(self,
+                     url="http://ds01za003:7813/lscapps/eric-emi-murali/AutoLoginServlet",
+                     profile_path="" ):
+        """Alternative login that uses firefox profile with Modify Headers
+        to access Eric without using the portal (doesn't work in every
+        Eric instance).
+
+        Args:
+            url - "auto login" url
+            profile_path - path to Firefox profile with apporpriate Modify
+                Headers details.
+        """
+        ffp_object = FirefoxProfile(profile_path)
+        # Use Webdriver to open Firefox using chosen profile
+        self.driver = webdriver.Firefox(ffp_object)
+
+        # Open the URL
+        self.driver.get(url)
+        # Check expected page is present
+        WebDriverWait(self.driver, 20).until(lambda driver:
+                                        "reports found for" in driver.page_source
+                                        or "0 report(s) found for user" in driver.page_source)
+        # Wait for "please wait" message to go
+        WebDriverWait(self.driver, 20).until(lambda driver: not self.check_page_blocked())
 
     def open_eric(self):
         """ Click Eric link in portal and wait for Eric app to open"""
@@ -211,18 +238,18 @@ class Eric(object):
         #           "Criminal financial statement",
         #           "Family mediation financial statement",
         #           "Financial statement summary"]
-        
+
         # Find the report name present on screen
 
         driver = self.driver
         # If position provided, find the associated report name
         if type(report) is int:
-            _, reports = self.report_list_items()       
+            _, reports = self.report_list_items()
             report_text = reports[report]
         # Otherwise just use the supplied value
         else:
             report_text = report
-        
+
         driver.find_element_by_link_text(report_text).click()
         # Wait for "please wait" to go
         WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
@@ -308,7 +335,7 @@ class Eric(object):
         driver.find_element_by_link_text("Log Out").click()
         # Wait for confirmation message
         WebDriverWait(driver, 20).until(lambda driver: '<h1 class="heading-xlarge">Logged Out</h1>' in driver.page_source)
-        
+
     def close(self):
         """Shutdown webdriver"""
         self.driver.quit()
@@ -335,7 +362,7 @@ if __name__ == "__main__":
     # Perform Search in CCR
     search_time = fn_timer(test.search, "0G934M")
     print "Search time:", search_time
-    
+
     # Show which reports were found (not timed)
     message, report_list = test.report_list_items()
     print message
