@@ -53,6 +53,24 @@ def fn_timer_decorator(fn):
     return temp
 
 
+def table_extract(table):
+    """Extract content from an html table.
+    Args:
+        Webdriver element associated with the html table. Ideally the table
+        itself but container such as div should work too.
+    Returns:
+        list of lists (rows, columns) containing <th> and <td> text
+    """
+    table_content = []
+    rows = table.find_elements_by_tag_name("tr")
+    for row in rows:
+        for tag in ("th", "td"):
+            row_text = [e.text for e in row.find_elements_by_tag_name(tag)]
+            if row_text:
+                table_content.append(row_text)
+    return table_content
+
+
 class Eric(object):
     """Uses Webdriver to interact with Eric"""
     def __init__(self):
@@ -136,7 +154,7 @@ class Eric(object):
                      profile_path="" ):
         """Alternative login that uses firefox profile with Modify Headers
         to access Eric without using the portal (doesn't work in every
-        Eric instance).
+        Eric instance but does with DEV10).
 
         Args:
             url - "auto login" url
@@ -146,7 +164,6 @@ class Eric(object):
         ffp_object = FirefoxProfile(profile_path)
         # Use Webdriver to open Firefox using chosen profile
         self.driver = webdriver.Firefox(ffp_object)
-
         # Open the URL
         self.driver.get(url)
         # Check expected page is present
@@ -289,24 +306,33 @@ class Eric(object):
 
     def examine_report_details(self):
         """Examine details from already open report
-        Not finished!
+        Returns results as ???
         """
         driver = self.driver
+
+        #Holds report content - three layers: table, row, column
+        content = []
+        report_heading = driver.find_element_by_tag_name("h3").text
+        content.append([[report_heading]])# [[]] becase want this as column in row
+
         # Report is in an iframe
         report_frame = driver.find_element_by_id("reportContent")
         driver.switch_to_frame(report_frame)
+
+        if "Empty Report" in driver.page_source:
+            content.append(["Empty Report"])
+
         # Results are in four tables within (Summary, Detail, Additional, Payments)
         tables = driver.find_elements_by_tag_name("table")
 
-        # Details from 1st table
-        print "Report Heading Info"
-        summary_rows = tables[0].find_elements_by_tag_name("tr")
-        for row in summary_rows:
-            cells = row.find_elements_by_tag_name("td")
-            print " ".join([e.text for e in cells])
+        #Extract details from each table
+        for ti, table in enumerate(tables):
+            table_details = table_extract(table)
+            content.append(table_details)
 
         # Leave the iframe
         driver.switch_to_default_content()
+        return content
 
     def close_report(self):
         """
@@ -323,26 +349,33 @@ class Eric(object):
         driver.switch_to_window(driver.window_handles[-1])
 
     def log_out(self):
-        """Log out from Eric and the Portal"""
+        """Log out from Eric and the Portal (if present)
+        Note if accessed using Modify Headers, Portal logout not possible.
+        """
         driver = self.driver
+        window_count = len(driver.window_handles)
         # Click Eric logout link
         driver.find_element_by_link_text("Log out").click()
-        # Wait for the Eric window to close
-        WebDriverWait(driver, 20).until(lambda x: len(x.window_handles) == 1, self.driver)
-        # Ensure focus is on the portal window
-        driver.switch_to_window(driver.window_handles[0])
-        # Click the portqal log out link
-        driver.find_element_by_link_text("Log Out").click()
-        # Wait for confirmation message
-        WebDriverWait(driver, 20).until(lambda driver: '<h1 class="heading-xlarge">Logged Out</h1>' in driver.page_source)
+
+        # Follow-up Portal logout
+        if window_count ==2:
+            # Wait for the Eric window to close
+            WebDriverWait(driver, 20).until(lambda x: len(x.window_handles) == 1, self.driver)
+            # Ensure focus is on the portal window
+            driver.switch_to_window(driver.window_handles[0])
+            # Click the portqal log out link
+            driver.find_element_by_link_text("Log Out").click()
+            # Wait for confirmation message
+            WebDriverWait(driver, 20).until(lambda driver: '<h1 class="heading-xlarge">Logged Out</h1>' in driver.page_source)
+        # Non portal
+        else:
+            WebDriverWait(driver, 20).until(lambda driver: "You have successfully logged out of EMI application" in driver.page_source)
 
     def close(self):
         """Shutdown webdriver"""
-        self.driver.quit()
+        self.driver.close()
 
-
-
-# Management Information (MI)
+# Management Information
 if __name__ == "__main__":
     print "Started"
     url = "https://syssso10.laadev.co.uk/"

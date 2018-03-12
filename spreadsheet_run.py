@@ -23,14 +23,19 @@ from eric import fn_timer
 # import eric Webdriver handling
 from eric import Eric
 
+#Write results to Excel files
+import excel_block_write
+
 
 class ExcelRun(object):
-    def __init__(self, filename=""):
+    def __init__(self, filename="", extract_details=True):
         """
         Uses Selenium to search, select and view Reports in Eric based on
         data from specially formatted spreadsheet.
         Args:
             filename - Excel file with test data
+            extract_details (bool) - Enable saving of financial statement details
+                                     to excel files.
         """
         # Selenium runner in Eric
         self.eric = Eric()
@@ -38,6 +43,10 @@ class ExcelRun(object):
         self.filename = filename
         # Row where columns headings are located
         self.heading_row = 5
+        # When True, export details fro any viewed report to Excel file(s)
+        self.extract_details = extract_details
+        # Start date/time (used in results filename creation)
+        self.run_start = time.strftime("%Y.%m.%d_%H:%M:%S")
 
     def run(self, max_scenario_row=60):
         """Run using data from spreadsheet
@@ -110,6 +119,11 @@ class ExcelRun(object):
                 if str(launch_time) == "Login Failed":
                     continue_run = False
 
+            elif action == "dlogin":
+                rs.cell(row=results_row, column=results_column).value = parameter + " " + parameter2
+                self.eric.login_direct(parameter, parameter2)
+                results_column += 2
+
             # Perform search
             elif action == "search":
                 rs.cell(row=results_row, column=results_column).value = parameter
@@ -176,8 +190,8 @@ class ExcelRun(object):
         # Save at end
         self.wb.save(self.filename)
 
-        # Quit webdriver
-        self.eric.close()
+        # Quit webdriver (rely on logout action above instead)
+        ##self.eric.close()
 
     def check_login(self, username, password, url):
         """Login to CCR"""
@@ -211,7 +225,25 @@ class ExcelRun(object):
 
     def check_report_view(self):
         """Response time for report to appear after clicking view button"""
+        #Read the current report choice before viewing
+        current_choice = self.eric.read_report_choice()
+        short_name = current_choice.split(" ")[0]
+        # View the report
         view_time = fn_timer(self.eric.view_report)
+
+        # Write financial details to Excel file if flag set
+        if self.extract_details:
+            details = self.eric.examine_report_details()
+            url = self.eric.driver.current_url
+            now = time.strftime("%d/%m/%Y - %H:%M:%S")
+            # Write the results spreadsheet.
+            excel = excel_block_write.WriteExcel("Report.xlsx")
+            row = 1
+            for item in details:
+                excel.write_block(item, row, tab_name=short_name)
+                excel.save()
+                row = row + 1 + len(item)
+
         # Close the report after viewing (not timed currently)
         self.eric.close_report()
         return view_time
