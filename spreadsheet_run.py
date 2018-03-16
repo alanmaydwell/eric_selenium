@@ -28,14 +28,12 @@ import excel_block_write
 
 
 class ExcelRun(object):
-    def __init__(self, filename="", extract_details=True):
+    def __init__(self, filename=""):
         """
         Uses Selenium to search, select and view Reports in Eric based on
         data from specially formatted spreadsheet.
         Args:
             filename - Excel file with test data
-            extract_details (bool) - Enable saving of financial statement details
-                                     to excel files.
         """
         # Selenium runner in Eric
         self.eric = Eric()
@@ -44,9 +42,16 @@ class ExcelRun(object):
         # Row where columns headings are located
         self.heading_row = 5
         # When True, export details fro any viewed report to Excel file(s)
-        self.extract_details = extract_details
+        # Value can be changed by flag read from spreadsheet data (in self.run)
+        self.extract_details = False
         # Start date/time (used in results filename creation)
-        self.run_start = time.strftime("%Y.%m.%d_%H:%M:%S")
+        self.run_start = time.strftime("%Y.%m.%d_%H.%M.%S")
+
+        #Sub folder for results - setup if not present
+        self.results_folder = os.path.join(os.getcwd(),"extracted_details")
+        #Create the folder if it doesn't exist
+        if not os.path.exists(self.results_folder):
+            os.makedirs(self.results_folder)
 
     def run(self, max_scenario_row=60):
         """Run using data from spreadsheet
@@ -77,6 +82,10 @@ class ExcelRun(object):
         results_start_row = rs["C3"].value
         if results_start_row <= self.heading_row:
             results_start_row = self.heading_row + 1
+
+        # update self.extract_details based on value from spreadsheet
+        # Controls report data
+        self.extract_details = str(ss["D3"].value)[:4].lower()
 
         # Sheet starting results column
         results_start_column = 2
@@ -226,27 +235,73 @@ class ExcelRun(object):
     def check_report_view(self):
         """Response time for report to appear after clicking view button"""
         #Read the current report choice before viewing
+        # Also capture "N reports for supplier X" message
         current_choice = self.eric.read_report_choice()
         short_name = current_choice.split(" ")[0]
+        supplier, _ = self.eric.report_list_items()
         # View the report
         view_time = fn_timer(self.eric.view_report)
 
-        # Write financial details to Excel file if flag set
-        if self.extract_details:
-            details = self.eric.examine_report_details()
-            url = self.eric.driver.current_url
-            now = time.strftime("%d/%m/%Y - %H:%M:%S")
-            # Write the results spreadsheet.
-            excel = excel_block_write.WriteExcel("Report.xlsx")
-            row = 1
-            for item in details:
-                excel.write_block(item, row, tab_name=short_name)
-                excel.save()
-                row = row + 1 + len(item)
+        # Write financial details to Excel file or HTML file if flag set
+        # Setup some heading info to write to spreadsheet
+        url = self.eric.driver.current_url
+        now = time.strftime("%d/%m/%Y - %H:%M:%S")
+        info = [[supplier, now, url]]
+        # Read details from the report
+        if self.extract_details in ("html", "both"):
+            # Get report content as page source
+            details = self.eric.get_report_details()
+            self.html_report_write(info, details["source"], short_name+"_source_")
+        if self.extract_details in ("exce", "both"):
+            # Get report content as individual cells
+            details = self.eric.get_report_details(get_cells=True)
+            self.excel_report_write(info, details["cells"], short_name)
 
-        # Close the report after viewing (not timed currently)
+        # Close the Eric report after viewing (not timed currently)
         self.eric.close_report()
         return view_time
+
+    def html_report_write(self, info, details, report_name):
+        """Write extracted financial statement content to an HTML file
+        Args:
+            info - list containing info text for first line
+            details - page source of report HTML tables
+            report_name - short name for Financial statement
+                         (added to filename).
+        """
+        report_filename = report_name + self.run_start + ".html"
+        html_path = os.path.join(self.results_folder, report_filename)
+        with open(html_path, "w") as html_file:
+            # Write info at top (between <pre> tags)
+            html_file.write("<pre>\n")
+            html_file.write("Eric Report Extracted Using Selenium Script</b>\n")
+            for item in info[0]:
+                html_file.write(item + "\n")
+            # Write the source
+            html_file.write("</pre> <hr>\n\n")
+
+            # Write each report contents to the file
+            html_file.write(details+"\n")
+
+    def excel_report_write(self, info, details, tab_name="Report"):
+        """Write extracted financial statement content to an Excel file
+        Args:
+            info - list containing information values to record in top row
+            details - list of lists containing tabular report content
+                    (as extracted by self.eric.examine_report_details)
+            tab_name - (optional) name of Excel tab to write to
+        """
+        excel_filename = "Reports_" + self.run_start + ".xlsx"
+        excel_path = os.path.join(self.results_folder, excel_filename)
+        excel = excel_block_write.WriteExcel(excel_path)
+        # Write info text to top row
+        excel.write_block(info, top_row=1, tab_name=tab_name, highlight_rows=[0])
+        # Write report details to further rows
+        start_row = 3
+        for item in details:
+            excel.write_block(item, start_row, tab_name=tab_name)
+            excel.save()
+            start_row = start_row + 1 + len(item)
 
     def open_spreadsheet(self):
         """Open test data spreadsheet"""

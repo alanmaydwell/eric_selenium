@@ -40,6 +40,7 @@ class WriteExcel(object):
             if tab_name not in self.wb.sheetnames:
                 self.wb.create_sheet(tab_name)
             ws = self.wb[tab_name]
+            ws.sheet_view.showGridLines = False
         # Default to the active sheet
         else:
             ws = self.wb.active
@@ -50,7 +51,7 @@ class WriteExcel(object):
             style = self.styles["body"]
             # Set different style for row if it's to be highlighted
             if ri in highlight_rows:
-                style = self.styles["body"]
+                style = self.styles["head"]
             # Write row to spreadsheet
             for ci, col in enumerate(row):
                 cell = ws.cell(row=top_row+ri, column=left_col+ci)

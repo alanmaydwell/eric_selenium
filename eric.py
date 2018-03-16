@@ -304,31 +304,47 @@ class Eric(object):
         # Wait for "Please Wait to go"
         WebDriverWait(driver, 20).until(lambda driver: not self.check_page_blocked())
 
-    def examine_report_details(self):
-        """Examine details from already open report
-        Returns results as ???
+    def get_report_details(self, get_source=True, get_cells=False):
+        """Extract details from already open report.
+        Args:
+            get_source (bool) - When True, get page source and return
+            as "source" element of content dictionary
+            get_cells (bool) - When True, get contents of each HTML table cell in
+                3-level list - table, row, column. Returned as cells element
+                of content dictionary. n.b. can be slow (>25 seconds)
+        Returns:
+                Report details indictionary
         """
         driver = self.driver
 
         #Holds report content - three layers: table, row, column
-        content = []
-        report_heading = driver.find_element_by_tag_name("h3").text
-        content.append([[report_heading]])# [[]] becase want this as column in row
+        content = {"source":"", "cells":[]}
+        #Add report title to cells
+        content["cells"].append([[driver.find_element_by_tag_name("h3").text]])
 
         # Report is in an iframe
         report_frame = driver.find_element_by_id("reportContent")
         driver.switch_to_frame(report_frame)
 
         if "Empty Report" in driver.page_source:
-            content.append(["Empty Report"])
+            content["cells"]=([["Empty Report"]])
 
-        # Results are in four tables within (Summary, Detail, Additional, Payments)
-        tables = driver.find_elements_by_tag_name("table")
+        # Just get the whole source
+        if get_source:
+            content["source"] = driver.page_source.encode('utf-8')
+        # Extract each table individually
+        if get_cells:
+            # Results are in four tables within (Summary, Detail, Additional, Payments)
+            tables = driver.find_elements_by_tag_name("table")
+            #Extract details from each table individually
+            for ti, table in enumerate(tables):
+                ##table_details = table.get_attribute('outerHTML')
+                ## table_details = table_details.encode('utf-8')
 
-        #Extract details from each table
-        for ti, table in enumerate(tables):
-            table_details = table_extract(table)
-            content.append(table_details)
+                # Extract rows and columns as list of lists
+                # using table_extract function
+                table_details = table_extract(table)
+                content["cells"].append(table_details)
 
         # Leave the iframe
         driver.switch_to_default_content()
